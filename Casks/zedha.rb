@@ -21,6 +21,13 @@ cask "zedha" do
   generate_completions_from_executable "#{HOMEBREW_PREFIX}/bin/zedha", "--completions",
                                        shells: [:bash, :zsh, :fish, :pwsh]
 
+  # The release is unsigned. The pinned SHA-256 verifies the artifact before
+  # this app-specific quarantine exception is applied on install and upgrade.
+  postflight do
+    system_command "/usr/bin/xattr",
+                   args: ["-dr", "com.apple.quarantine", "#{appdir}/Zedha.app"]
+  end
+
   uninstall quit: "me.ghostwriternr.Zedha"
 
   zap trash: [

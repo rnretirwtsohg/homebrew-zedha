@@ -7,9 +7,9 @@ independent downstream distribution of the Zed editor.
 brew install --cask rnretirwtsohg/zedha/zedha
 ```
 
-Zedha releases are currently unsigned and not notarized. The cask preserves
-macOS quarantine by default; managed installations may explicitly clear it
-after verifying the cask's pinned SHA-256.
+Zedha releases are currently unsigned and not notarized. After Homebrew
+verifies the cask's pinned SHA-256, the cask removes quarantine from Zedha only
+so macOS can launch the app. It does not change global Gatekeeper settings.
 
 The cask intentionally supports Apple Silicon only until Zedha publishes an
 Intel artifact. Zedha stable builds do not self-update; version, URL, and
