@@ -1,6 +1,6 @@
 cask "zedha" do
-  version "1.12.0-zedha.1"
-  sha256 "0f3c3d6e795e6e1f91bd4ce1158f40e0133eac95609b3655a07aed35f9e979b8"
+  version "1.20.2-zedha.1"
+  sha256 "5ca0b5b28db2962b9ab1aeea05340c5ad109726ec3695c686412bb8991fd42c6"
 
   url "https://github.com/rnretirwtsohg/zedha/releases/download/v#{version}/Zedha-aarch64.dmg"
   name "Zedha"
