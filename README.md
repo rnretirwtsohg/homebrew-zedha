@@ -14,3 +14,5 @@ so macOS can launch the app. It does not change global Gatekeeper settings.
 The cask intentionally supports Apple Silicon only until Zedha publishes an
 Intel artifact. Zedha stable builds do not self-update; version, URL, and
 checksum changes in this tap drive upgrades through Homebrew.
+The tap checks the latest Zedha GitHub Release hourly and commits verified cask
+updates automatically.
