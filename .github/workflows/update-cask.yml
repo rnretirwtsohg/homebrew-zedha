@@ -1,0 +1,56 @@
+name: Update Zedha Cask
+
+on:
+  schedule:
+    - cron: "37 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: update-zedha-cask
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test updater
+        run: bash tests/test-update-cask.sh
+      - name: Read latest Zedha release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=$(gh release view --repo rnretirwtsohg/zedha --json tagName --jq .tagName)
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-zedha\.[1-9][0-9]*$ ]]; then
+            echo "unexpected Zedha release tag: $tag" >&2
+            exit 1
+          fi
+          gh release download "$tag" --repo rnretirwtsohg/zedha \
+            --pattern Zedha-aarch64.dmg \
+            --dir "$RUNNER_TEMP"
+          {
+            echo "tag=$tag"
+            echo "version=${tag#v}"
+            echo "sha256=$(sha256sum "$RUNNER_TEMP/Zedha-aarch64.dmg" | cut -d' ' -f1)"
+          } >> "$GITHUB_OUTPUT"
+      - name: Update cask
+        run: bash scripts/update-cask '${{ steps.release.outputs.version }}' '${{ steps.release.outputs.sha256 }}'
+      - name: Validate cask
+        run: ruby -c Casks/zedha.rb
+      - name: Commit update
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          if git diff --quiet -- Casks/zedha.rb; then
+            echo "Cask is already current"
+            exit 0
+          fi
+          git config user.name "Zedha Cask Bot"
+          git config user.email "zedha-cask-bot@users.noreply.github.com"
+          git add Casks/zedha.rb
+          git commit -m "Upgrade Zedha cask to $VERSION"
+          git push

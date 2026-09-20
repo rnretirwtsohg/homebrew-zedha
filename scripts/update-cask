@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -lt 2 || $# -gt 3 ]]; then
+  echo "usage: update-cask VERSION SHA256 [CASK]" >&2
+  exit 1
+fi
+
+version=$1
+sha256=$2
+cask=${3:-"$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/Casks/zedha.rb"}
+
+python3 - "$cask" "$version" "$sha256" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+path = Path(sys.argv[1])
+candidate = sys.argv[2]
+sha256 = sys.argv[3]
+version_pattern = re.compile(r"(\d+)\.(\d+)\.(\d+)-zedha\.(\d+)")
+
+
+def parse_version(value: str) -> tuple[int, int, int, int]:
+    match = version_pattern.fullmatch(value)
+    if match is None:
+        raise SystemExit(f"invalid Zedha release version: {value}")
+    return tuple(int(part) for part in match.groups())
+
+
+if re.fullmatch(r"[0-9a-f]{64}", sha256) is None:
+    raise SystemExit(f"invalid SHA-256: {sha256}")
+
+text = path.read_text(encoding="utf-8")
+version_match = re.search(r'^\s*version "([^"]+)"$', text, re.MULTILINE)
+sha_match = re.search(r'^\s*sha256 "([0-9a-f]+)"$', text, re.MULTILINE)
+if version_match is None or sha_match is None:
+    raise SystemExit(f"could not find version and SHA-256 in {path}")
+
+current = version_match.group(1)
+current_version = parse_version(current)
+candidate_version = parse_version(candidate)
+if candidate_version < current_version:
+    print(f"Cask {current} is newer than release {candidate}; refusing to downgrade")
+    raise SystemExit(0)
+if candidate_version == current_version:
+    if sha_match.group(1) != sha256:
+        raise SystemExit(f"release {candidate} has a different SHA-256 than the cask")
+    print(f"Cask is already current at {current}")
+    raise SystemExit(0)
+
+text = text[: version_match.start(1)] + candidate + text[version_match.end(1) :]
+sha_match = re.search(r'^\s*sha256 "([0-9a-f]+)"$', text, re.MULTILINE)
+text = text[: sha_match.start(1)] + sha256 + text[sha_match.end(1) :]
+path.write_text(text, encoding="utf-8")
+print(f"Updated cask from {current} to {candidate}")
+PY
